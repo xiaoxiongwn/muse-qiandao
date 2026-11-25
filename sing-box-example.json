@@ -1,0 +1,72 @@
+{
+  // sing-box 配置模板：把 VLESS / Hysteria2 节点转成本地 HTTP + SOCKS5 代理，
+  // 给签到 App 用。只改下面标“改这里”的地方，其他不用动。
+  //
+  // 用法（手机上）：
+  // 1. 装 sing-box for Android（SFA），新建配置，把这个文件的内容粘进去
+  // 2. 把占位符换成你自己的真实节点信息，保存，点启动
+  // 3. 签到 App 里编辑网站：代理类型选 HTTP，地址填 127.0.0.1，端口填 2080
+  //
+  // 注意：这个文件里有你的 UUID / 密码，千万别发给别人，也别传到 GitHub 上。
+  // 签到 App 里只填 127.0.0.1:2080，不填节点信息，所以 App 本身是安全的。
+  "log": { "level": "info" },
+  "inbounds": [
+    {
+      "type": "mixed",
+      "tag": "mixed-in",
+      "listen": "127.0.0.1",
+      "listen_port": 2080
+    },
+    {
+      "type": "http",
+      "tag": "http-in",
+      "listen": "127.0.0.1",
+      "listen_port": 2081
+    },
+    {
+      "type": "socks",
+      "tag": "socks-in",
+      "listen": "127.0.0.1",
+      "listen_port": 2082
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "vless",
+      "tag": "vless-node",
+      "server": "改这里：VLESS 服务器地址",
+      "server_port": 443,
+      "uuid": "改这里：你的 VLESS UUID",
+      "flow": "",
+      "tls": {
+        "enabled": true,
+        "server_name": "改这里：VLESS 的域名",
+        "utls": { "enabled": true, "fingerprint": "chrome" }
+      }
+    },
+    {
+      "type": "hysteria2",
+      "tag": "hy2-node",
+      "server": "改这里：HY2 服务器地址",
+      "server_port": 23438,
+      "password": "改这里：你的 HY2 密码",
+      "tls": {
+        "enabled": true,
+        "server_name": "改这里：HY2 的域名",
+        "insecure": false
+      }
+    },
+    {
+      "type": "selector",
+      "tag": "proxy",
+      "outbounds": ["vless-node", "hy2-node", "direct"]
+    },
+    { "type": "direct", "tag": "direct" },
+    { "type": "block", "tag": "block" }
+  ],
+  "route": {
+    "rules": [{ "action": "sniff" }],
+    "final": "proxy",
+    "auto_detect_interface": true
+  }
+}
