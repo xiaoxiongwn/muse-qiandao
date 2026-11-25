@@ -1,0 +1,49 @@
+name: Build APK
+
+# 推到 GitHub 就自动编译；也可以在 Actions 页面点 Run workflow 手动跑。
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # 注意：不要再加 android-actions/setup-android@v3。
+      # 它会在新版命令行工具上跑 `sdkmanager tools`，而 tools 包早已下架，
+      # 会报 "Failed to find package 'tools'"、exit code 1，直接失败。
+      # ubuntu-latest 自带 Android SDK（ANDROID_HOME 已设好、许可证已接受），
+      # 编这个项目够用了。
+      - name: Check preinstalled Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls "$ANDROID_HOME/platforms" | tail -5
+          ls "$ANDROID_HOME/build-tools" | tail -5
+
+      # 不用 ./gradlew：这个项目没有提交 gradle wrapper，
+      # 直接用官方 setup-gradle 装 Gradle 8.7（对应 AGP 8.5.2）。
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: "8.7"
+
+      - name: Build debug APK
+        run: gradle assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkin-app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
